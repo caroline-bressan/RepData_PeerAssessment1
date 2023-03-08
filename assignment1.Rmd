@@ -1,0 +1,99 @@
+---
+title: "Reproducible Research: Peer Assessment 1"
+output: 
+  html_document:
+  keep_md: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Loading and preprocessing the data
+```{r}
+library(knitr)
+library(swirl)
+library(ggplot2)
+library(lubridate)
+library(dplyr)
+getwd()
+setwd("C:/Users/caroline/Documents/R/data/Rep_data")
+activity<-read.csv("activity.csv", header=T, quote="\"", sep=",")
+activity<-na.omit(activity)
+```
+
+## What is mean total number of steps taken per day?
+
+```{r}
+totalSteps <- aggregate(steps ~ date, activity, sum)
+hist(totalSteps$steps, main = paste("Total Steps Each Day"), col="grey", xlab="Number of Steps")
+```
+
+```{r}
+#mean of the steps by day
+mean_steps<-mean(totalSteps$steps)
+mean_steps
+
+#median of the steps by day
+median_steps<-median(totalSteps$steps)
+median_steps
+```
+
+## What is mean total number of steps taken per day?
+```{r}
+#pattern of steps per interval
+steps_per_interval<-aggregate(steps~interval,activity,mean)
+plot(steps_per_interval$interval,steps_per_interval$steps,type="l",col="grey",xlab="Interval",ylab="Numbers of Steps",main="The average daily pattern of steps")
+```
+
+#maximum of steps in 5 min interval
+```{r}
+max_interval<-steps_per_interval$interval[which.max(steps_per_interval$steps)]
+```
+
+## Imputing missing values
+#calculating NA's 
+```{r} 
+activity1<-read.csv("activity.csv")
+steps_na<-sum(is.na(activity1$steps))
+```
+
+```{r}
+average_interva5 <- aggregate(steps ~ interval, activity1, FUN = mean, na.rm = TRUE)
+fillNA<- activity1
+na_steps <- is.na(activity1$steps)
+aux <- na.omit(subset(average_interva5, interval == activity1$interval[na_steps]))
+fillNA$steps[na_steps] <- aux[, 2]
+na_steps_fillNA <- sum(is.na(fillNA))
+steps_day_noNA<-aggregate(steps ~ date, data = fillNA, FUN = sum, na.rm = TRUE)
+hist(steps_day_noNA$steps,main = "Number of steps each day (without NA)", xlab = "Number of steps per day",col = "grey", breaks = 40)
+```
+
+##Comparing the two datas with and withou NA's 
+```{r}
+mean_stepsNA<-mean(steps_day_noNA$steps)
+
+median_stepsNA<-median(steps_day_noNA$steps)
+
+summary(totalSteps$steps)
+
+summary(steps_day_noNA$steps)
+```
+
+## Are there differences in activity patterns between weekdays and weekends?
+```{r}
+activity$date<-as.Date(x=activity$date,format="%Y%m%d")
+weekdays_values = c("Monday","Tuesday", "Wednesday", "Thursday", "Friday")
+date_type <- ifelse( weekdays(activity$date) %in% weekdays_values,"weekdays", "weekend")
+
+activity$day<-factor(x=date_type)
+steps_weekday <- aggregate(steps ~ interval + day, data = activity, FUN = mean, na.rm = TRUE)
+
+ggplot(steps_weekday, aes(interval, steps, color = day)) +
+geom_line() +
+facet_grid(day ~ .) +
+xlab("5-minute interval") +
+ylab("Average number of steps") +
+ggtitle("Activity by the weekend or weekday")
+``` 
+
